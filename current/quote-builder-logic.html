@@ -1,0 +1,282 @@
+<script nowprocket defer>
+  // ---------- Native Elementor step navigation ----------
+  window.HHQuoteNav = (function () {
+    const formWrapper = document.getElementById("form");
+    function activeStepEl() {
+      return formWrapper.querySelector(".e-form__step:not(.elementor-hidden)");
+    }
+    function scrollToForm() {
+      document
+        .getElementById("package_quote_form")
+        .scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    function clickNext() {
+      activeStepEl()
+        ?.querySelector(".e-form__buttons__wrapper__button-next")
+        ?.click();
+      scrollToForm();
+    }
+    return {
+      afterPackageSelect(addonCount) {
+        clickNext();
+        if (addonCount === 0) clickNext();
+      },
+    };
+  })();
+
+  document.getElementById("form").addEventListener("click", (e) => {
+    const btn = e.target.closest(".e-form__buttons__wrapper__button-previous");
+    if (!btn) return;
+    requestAnimationFrame(() => {
+      const addons = Alpine.store("quote")?.selectedPackage?.addons ?? [];
+      const stillOnStep2 = document.querySelector(
+        ".elementor-field-group-addons:not(.elementor-hidden)",
+      );
+      if (addons.length === 0 && stillOnStep2) btn.click();
+    });
+  });
+
+  // ---------- Hide filters outside Step 1 ----------
+  // NOTE: the disclaimer no longer needs this — it now lives INSIDE Step 1's
+  // own field group, so Elementor's native step-hiding already handles it.
+  // Only the filters widget (genuinely outside the form) still needs this.
+
+  function syncStepVisibility() {
+    const formWrapper = document.getElementById("form");
+    const isStep1 = !formWrapper
+      .querySelector(".elementor-field-group-package")
+      ?.classList.contains("elementor-hidden");
+    document.querySelectorAll(".js-step1-only").forEach((el) => {
+      el.style.display = isStep1 ? "" : "none";
+    });
+  }
+  new MutationObserver(syncStepVisibility).observe(
+    document.querySelector(".elementor-form-fields-wrapper"),
+    { attributes: true, attributeFilter: ["class"], subtree: true },
+  );
+  syncStepVisibility();
+
+  // ---------- Alpine store ----------
+
+  document.addEventListener("alpine:init", () => {
+    const raw = JSON.parse(
+      document.getElementById("hh-quote-data").textContent,
+    );
+
+    Alpine.store("quote", {
+      packages: raw.packages,
+      coverageChoices: raw.coverageChoices,
+      styleChoices: raw.styleChoices,
+      availableCoverage: raw.availableCoverage,
+      styleToCoverages: raw.styleToCoverages,
+      coverage: raw.defaultCoverage,
+      style: null,
+      selectedPackage: null,
+      addonState: {},
+
+      get availableCoverageList() {
+        return this.availableCoverage.map((slug) => ({
+          slug,
+          label: this.coverageChoices[slug],
+        }));
+      },
+      get styleList() {
+        return Object.keys(this.styleToCoverages).map((slug) => ({
+          slug,
+          label: this.styleChoices[slug],
+          isValid: this.coverage
+            ? this.styleToCoverages[slug].includes(this.coverage)
+            : false,
+        }));
+      },
+      get coverageLabel() {
+        return this.coverageChoices[this.coverage] || "";
+      },
+      get styleLabel() {
+        return this.styleChoices[this.style] || "";
+      },
+      get visiblePackages() {
+        if (!this.coverage || !this.style) return [];
+        return this.packages.filter(
+          (p) => p.coverage === this.coverage && p.style === this.style,
+        );
+      },
+      get total() {
+        if (!this.selectedPackage) return 0;
+        let total = this.selectedPackage.price;
+        for (const addon of this.selectedPackage.addons) {
+          const sel = this.addonState[addon.id];
+          if (!sel?.checked) continue;
+          const qty = addon.type === "quantity" ? Number(sel.qty || 0) : 1;
+          if (addon.type === "quantity" && !qty) continue;
+          total += addon.price * qty;
+        }
+        return total;
+      },
+      get addonSummaryLines() {
+        if (!this.selectedPackage) return [];
+        return this.selectedPackage.addons
+          .filter((a) => this.addonState[a.id]?.checked)
+          .map((a) => {
+            const qty =
+              a.type === "quantity"
+                ? Number(this.addonState[a.id].qty || 0)
+                : 1;
+            if (a.type === "quantity" && !qty) return null;
+            return {
+              id: a.id,
+              text: `${qty > 1 ? qty + " " : ""}${a.label} + $${this.formatNumber(a.price * qty)}`,
+            };
+          })
+          .filter(Boolean);
+      },
+      get hasSelectedAddons() {
+        return this.addonSummaryLines.length > 0;
+      },
+
+      formatNumber(n) {
+        return Number(n || 0).toLocaleString("en-US");
+      },
+
+      selectPackage(pkg) {
+        this.selectedPackage = pkg;
+        this.addonState = Object.fromEntries(
+          pkg.addons.map((a) => [
+            a.id,
+            {
+              checked: false,
+              qty: null,
+            },
+          ]),
+        );
+        Alpine.nextTick(() =>
+          window.HHQuoteNav.afterPackageSelect(pkg.addons.length),
+        );
+      },
+    });
+
+    Alpine.effect(() => {
+      const store = Alpine.store("quote");
+      if (
+        store.style &&
+        !store.styleList.find((s) => s.slug === store.style && s.isValid)
+      ) {
+        store.style = null;
+      }
+    });
+
+    const FIELD_MAP = {
+      selected_coverage: () => Alpine.store("quote").coverage || "",
+      selected_style: () => Alpine.store("quote").style || "",
+      package_name: () => Alpine.store("quote").selectedPackage?.label || "",
+      base_price: () => Alpine.store("quote").selectedPackage?.price ?? "",
+      estimated_total: () =>
+        Alpine.store("quote").selectedPackage
+          ? Alpine.store("quote").total
+          : "",
+      selected_addons_summary: () =>
+        Alpine.store("quote")
+          .addonSummaryLines.map((l) => l.text)
+          .join(", "),
+    };
+    Alpine.effect(() => {
+      for (const [fieldId, getValue] of Object.entries(FIELD_MAP)) {
+        const input = document.querySelector(
+          `input[name="form_fields[${fieldId}]"]`,
+        );
+        if (input) input.value = getValue();
+      }
+    });
+  });
+
+  // ---------- Inject templates AFTER Alpine's first pass, then activate them ----------
+  // This is the actual fix: these strings never touch PHP/wp_kses, so nothing
+  // gets stripped. Alpine.initTree() binds directives on content added after
+  // Alpine.start() already ran.
+
+  document.addEventListener("alpine:initialized", () => {
+    const cardsEl = document.getElementById("cards");
+    cardsEl.innerHTML = `
+            <div x-data>
+                <template x-for="pkg in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
+                    <div class="package-card">
+                        <h3 class="package-card__title" x-text="pkg.label"></h3>
+                        <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)"></span> <span>+ GST</span></p>
+                        <p class="package-card__description" x-text="pkg.description"></p>
+                        <button type="button" class="package-card__select" @click="$store.quote.selectPackage(pkg)">Select this package</button>
+                        <div class="package-card__divider" aria-hidden="true"></div>
+                        <ul class="package-card__features">
+                            <template x-for="feature in pkg.features" :key="feature">
+                                <li x-text="feature"></li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+                <p class="placeholder" x-show="!$store.quote.coverage || !$store.quote.style">
+                    Select a coverage and style above to see packages.
+                </p>
+            </div>
+        `;
+    Alpine.initTree(cardsEl);
+
+    const addonsEl = document.getElementById("addons-container");
+    addonsEl.innerHTML = `
+            <div x-data>
+                <p class="addons-selected-package" x-text="$store.quote.selectedPackage?.label"></p>
+                <h3>Select optional add-ons</h3>
+                <template x-for="addon in $store.quote.selectedPackage?.addons ?? []" :key="addon.id">
+                    <div class="addon-row" :class="{ 'addon-row--quantity': addon.type === 'quantity' }">
+                        <label>
+                            <input type="checkbox" x-model="$store.quote.addonState[addon.id].checked">
+                            <span x-text="\`\${addon.label} ($\${$store.quote.formatNumber(addon.price)} + GST\${addon.unit ? ' ' + addon.unit : ''})\`"></span>
+                        </label>
+                        <div class="addon-row__qty" x-show="addon.type === 'quantity' && $store.quote.addonState[addon.id].checked">
+                            <label>How many musicians would you like to add?</label>
+                            <select x-model="$store.quote.addonState[addon.id].qty">
+                                <option value="">Select number</option>
+                                <template x-for="n in addon.max" :key="n">
+                                    <option :value="n" x-text="n"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </template>
+                <div class="total-box">
+                    <div>Estimated total:</div>
+                    <div class="amount"><span x-text="'$' + $store.quote.formatNumber($store.quote.total)"></span> <span>+ GST</span></div>
+                </div>
+            </div>
+        `;
+    Alpine.initTree(addonsEl);
+
+    const summaryEl = document.getElementById("selection-summary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+                <div class="selection-summary" x-data>
+                    <div class="selection-summary__left">
+                        <h3>Selection summary</h3>
+                        <ul class="summary-list">
+                            <li>✓ <span x-text="\`\${$store.quote.coverageLabel} \${$store.quote.styleLabel}\`"></span></li>
+                            <li>✓ <span x-text="$store.quote.selectedPackage?.label"></span></li>
+                        </ul>
+                        <template x-if="$store.quote.hasSelectedAddons">
+                            <div class="selection-summary__addons">
+                                <p class="summary-subtitle">Optional Add-ons</p>
+                                <ul class="summary-list">
+                                    <template x-for="line in $store.quote.addonSummaryLines" :key="line.id">
+                                        <li>✓ <span x-text="line.text"></span></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="selection-summary__total">
+                        <div>Approximate total</div>
+                        <div class="amount"><span x-text="'$' + $store.quote.formatNumber($store.quote.total)"></span> <span>+ GST</span></div>
+                    </div>
+                </div>
+            `;
+      Alpine.initTree(summaryEl);
+    }
+  });
+</script>
