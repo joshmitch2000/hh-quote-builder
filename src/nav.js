@@ -7,14 +7,21 @@
  * "Go back" button + requestAnimationFrame re-click if it lands on an
  * empty Step 2.
  *
- * Editor-safe: skipped entirely in the Elementor editor (`window.elementor`
- * present) — the editor renders all steps stacked, so step navigation is
- * meaningless and clicking native next/prev buttons would fight the
- * editor's own widget-selection clicks.
+ * Editor-safe: skipped entirely in the Elementor editor preview — the
+ * editor renders all steps stacked, so step navigation is meaningless and
+ * clicking native next/prev buttons would fight the editor's own
+ * widget-selection clicks. Detection uses the ?elementor-preview= URL
+ * param (always present in the preview iframe; see
+ * docs/elementor-editor-and-wppusher-research.md §1.1) because
+ * window.elementor is NOT yet defined in the iframe when this deferred
+ * bundle executes — the parent editor injects it only after the iframe's
+ * load event (§1.3).
  */
 export function initNav() {
   const formWrapper = document.getElementById("form");
-  const isEditor = !!window.elementor;
+  const isEditor = new URLSearchParams(window.location.search).has(
+    "elementor-preview",
+  );
 
   window.HHQuoteNav = (function () {
     function activeStepEl() {

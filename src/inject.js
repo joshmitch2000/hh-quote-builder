@@ -7,12 +7,25 @@
  * nothing gets stripped. Alpine.initTree() binds directives on content
  * added after Alpine.start() already ran.
  *
- * In the Elementor editor, widgets re-render on every panel change, which
- * wipes injected DOM. The MutationObserver re-injects when a container is
- * found empty, keeping the preview live while editing.
+ * Editor preview (see docs/elementor-editor-and-wppusher-research.md §1.4):
+ * the iframe's initial HTML contains NO widget markup — Elementor replaces
+ * the_content with an empty wrapper and renders every widget via AJAX after
+ * page load, and re-renders (jQuery .empty().append()) on panel changes.
+ * So at alpine:initialized the shortcode containers usually don't exist
+ * yet, and when they do get re-rendered the container nodes themselves are
+ * discarded. Hence the observer watches document.documentElement with
+ * subtree (a node Elementor never replaces) and simply re-runs injectAll,
+ * which fills any present-but-empty container. Editor-only: the frontend
+ * never re-renders, so it gets zero observer overhead.
  */
 export function initInject() {
-  let observer = null;
+  // The preview iframe URL always carries ?elementor-preview=<id>
+  // (Elementor core/base/document.php get_preview_url()). This is reliable
+  // at deferred-script execution time, unlike window.elementor, which the
+  // parent editor only injects into the iframe after its load event.
+  const isEditorPreview = new URLSearchParams(window.location.search).has(
+    "elementor-preview",
+  );
 
   function injectAll() {
     const cardsEl = document.getElementById("cards-container");
@@ -108,26 +121,36 @@ export function initInject() {
   document.addEventListener("alpine:initialized", () => {
     injectAll();
 
-    // Elementor editor: widgets re-render on panel changes, wiping injected
-    // markup. Watch each container and re-inject when it gets emptied.
-    // Frontend: Elementor never re-renders, so the observer never fires —
-    // the idle cost of three childList observers is negligible.
-    if (observer) return;
+    if (!isEditorPreview) return;
+
+    // Editor preview: containers arrive via AJAX after this point, and
+    // Elementor's re-renders replace the container nodes entirely — so
+    // observing the containers themselves is useless. Watch the document
+    // root instead and re-run injectAll on any mutation; the guards below
+    // keep it cheap and loop-free.
+    let scheduled = false;
     let reinjecting = false;
-    observer = new MutationObserver(() => {
+    const observer = new MutationObserver(() => {
       // Alpine.initTree() mutates DOM heavily while binding; guard against
       // re-entrancy so binding mutations don't recursively retrigger us.
       if (reinjecting) return;
-      reinjecting = true;
-      try {
-        injectAll();
-      } finally {
-        reinjecting = false;
-      }
+      // Coalesce mutation bursts (Elementor re-renders many widgets at
+      // once) into a single injectAll per frame.
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        reinjecting = true;
+        try {
+          injectAll();
+        } finally {
+          reinjecting = false;
+        }
+      });
     });
-    for (const id of ["cards-container", "addons-container", "selection-summary"]) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el, { childList: true });
-    }
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
   });
 }
