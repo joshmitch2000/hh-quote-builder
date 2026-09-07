@@ -32,8 +32,8 @@ export function initInject() {
     if (cardsEl && !cardsEl.hasChildNodes()) {
       cardsEl.innerHTML = `
             <div id="cards" x-data>
-                <template x-for="pkg in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
-                    <div class="package-card">
+                <template x-for="(pkg, index) in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
+                    <div class="package-card" :style="{ '--card-index': index }">
                         <h3 class="package-card__title" x-text="pkg.label"></h3>
                         <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)" class="price-amount"></span> <span class="price-suffix">+ GST</span></p>
                         <p class="package-card__description" x-text="pkg.description"></p>
@@ -129,18 +129,47 @@ export function initInject() {
     // on identity change is explicit and cheap: the div is presentational
     // only, all selection state lives in the store. Runs on frontend AND
     // editor — the gap exists in both.
+    //
+    // Layout-shift guard: emptying the container collapses its height to 0,
+    // which yanks the content below up and back down (the "flash"). Lock the
+    // container's height to its current rendered height for the duration of
+    // the rebuild so nothing below it moves; release after re-inject. Also
+    // skip the rebuild entirely when the package list hasn't actually changed
+    // (identity key comparison) so redundant filter changes don't rebuild.
+    let lastKeys = null;
+    const packageKeys = (pkgs) =>
+      pkgs.map((p) => `${p.coverage}|${p.style}|${p.label}`).join(",");
+
     Alpine.effect(() => {
-      // eslint-disable-next-line no-unused-vars -- read for reactivity only
       const packages = Alpine.store("quote")?.visiblePackages ?? [];
+      const keys = packageKeys(packages);
+      if (keys === lastKeys) return; // nothing changed → no rebuild
+      lastKeys = keys;
+
       const cardsEl = document.getElementById("cards-container");
       if (!cardsEl) return;
-      // Force re-injection: empty the container, then refill via injectAll
-      // on the next tick (after Alpine settles). Skip the very first run —
-      // injectAll above already populated it.
-      if (cardsEl.hasChildNodes()) {
-        cardsEl.innerHTML = "";
-        Alpine.nextTick(() => injectAll());
-      }
+
+      // First population is handled by injectAll above; only rebuild when the
+      // grid is already populated.
+      if (!cardsEl.hasChildNodes()) return;
+
+      // Lock height so content below doesn't jump during the empty→refill gap.
+      const height = cardsEl.offsetHeight;
+      cardsEl.style.minHeight = `${height}px`;
+
+      cardsEl.innerHTML = "";
+      Alpine.nextTick(() => {
+        injectAll();
+        // Re-trigger the enter animation each rebuild: the class persists on
+        // the container across rebuilds, so remove → reflow → re-add to
+        // restart it, then release the height lock after the new grid paints.
+        cardsEl.classList.remove("cards--entering");
+        void cardsEl.offsetWidth; // force reflow so the animation restarts
+        cardsEl.classList.add("cards--entering");
+        requestAnimationFrame(() => {
+          cardsEl.style.minHeight = "";
+        });
+      });
     });
 
     if (!isEditorPreview) return;
