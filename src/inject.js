@@ -24,7 +24,7 @@ export function initInject() {
                 <template x-for="pkg in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
                     <div class="package-card">
                         <h3 class="package-card__title" x-text="pkg.label"></h3>
-                        <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)"></span> <span>+ GST</span></p>
+                        <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)" class="price-amount"></span> <span class="price-suffix">+ GST</span></p>
                         <p class="package-card__description" x-text="pkg.description"></p>
                         <button type="button" class="package-card__select" @click="$store.quote.selectPackage(pkg)">Select this package</button>
                         <div class="package-card__divider" aria-hidden="true"></div>
@@ -46,7 +46,7 @@ export function initInject() {
     const addonsEl = document.getElementById("addons-container");
     if (addonsEl) {
       addonsEl.innerHTML = `
-            <div x-data>
+            <div id="addons" x-data>
                 <p class="addons-selected-package" x-text="$store.quote.selectedPackage?.label"></p>
                 <h3>Select optional add-ons</h3>
                 <template x-for="addon in $store.quote.selectedPackage?.addons ?? []" :key="addon.id">
