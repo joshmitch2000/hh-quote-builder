@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
 .agents
-skills-lock.jsontest-results/
+skills-lock.json
+test-results/
 playwright-report/

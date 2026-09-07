@@ -6,6 +6,19 @@
 
 if (! defined('ABSPATH')) exit;
 
+/**
+ * Decode HTML entities in a user-facing string so the JS payload is plain
+ * text. ACF/post titles can arrive encoded (esc_html on save or a filter);
+ * the bundle renders labels via Alpine x-text, which inserts them as
+ * literal text — so any encoding upstream would show through verbatim
+ * (e.g. "&#038;" instead of "&"). html_entity_decode is safe here: the
+ * payload is JSON, and x-text never parses HTML.
+ */
+function hhqb_plain($value)
+{
+  return is_string($value) ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $value;
+}
+
 function hh_get_quote_data()
 {
   static $data = null;
@@ -40,7 +53,7 @@ function hh_get_quote_data()
     if (have_rows('features', $package_id)) {
       while (have_rows('features', $package_id)) : the_row();
         $feature = get_sub_field('package_feature');
-        if ($feature) $features[] = $feature;
+        if ($feature) $features[] = hhqb_plain($feature);
       endwhile;
     }
 
@@ -53,10 +66,10 @@ function hh_get_quote_data()
 
         $addons_payload[] = [
           'id'    => $addon_post->post_name,
-          'label' => get_the_title($addon_post),
+          'label' => hhqb_plain(get_the_title($addon_post)),
           'price' => (float) preg_replace('/[^0-9.]/', '', get_field('price', $addon_post->ID)),
           'type'  => get_field('type', $addon_post->ID),
-          'unit'  => get_field('unit_label', $addon_post->ID),
+          'unit'  => hhqb_plain(get_field('unit_label', $addon_post->ID)),
           'max'   => $max_qty ? (int) $max_qty : null,
         ];
       endwhile;
@@ -65,9 +78,9 @@ function hh_get_quote_data()
     $packages_payload[] = [
       'coverage'    => $coverage,
       'style'       => $style,
-      'label'       => get_the_title($package_id),
+      'label'       => hhqb_plain(get_the_title($package_id)),
       'price'       => $price_numeric,
-      'description' => get_field('short_description', $package_id),
+      'description' => hhqb_plain(get_field('short_description', $package_id)),
       'features'    => $features,
       'addons'      => $addons_payload,
     ];

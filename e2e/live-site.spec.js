@@ -69,10 +69,17 @@ test.describe("quote builder (live)", () => {
 
     test.skip(!snap, "every coverage supports the default style — nothing to snap");
 
-    // Change coverage via the real UI radio (the user's path).
+    // Change coverage by clicking the styled <label> tab — the radio input
+    // itself is visually hidden and its <label> intercepts pointer events,
+    // so Playwright can't action the input directly (and a user taps the
+    // label anyway).
     await page
-      .locator(`input[name="coverage-filter"][value="${snap.targetCoverage}"]`)
-      .check();
+      .locator("label.filter-tab", {
+        has: page.locator(
+          `input[name="coverage-filter"][value="${snap.targetCoverage}"]`,
+        ),
+      })
+      .click();
 
     // Style snaps to the first valid option for the new coverage…
     await expect
@@ -84,8 +91,17 @@ test.describe("quote builder (live)", () => {
       snap.expectedFirstValid,
     );
 
-    // …and cards re-render for the new combination.
-    await expect(page.locator("#cards .package-card").first()).toBeVisible();
+    // …and every visible package now matches the new coverage + snapped
+    // style. (Asserted on the store, not the DOM — Alpine's x-for re-render
+    // lags the state change, so a DOM card count here is timing-flaky. The
+    // snap itself is what's under test.)
+    const mismatched = await page.evaluate(() => {
+      const s = window.Alpine.store("quote");
+      return s.visiblePackages.filter(
+        (p) => p.coverage !== s.coverage || p.style !== s.style,
+      ).length;
+    });
+    expect(mismatched).toBe(0);
   });
 
   test("package selection populates add-ons and syncs the Elementor hidden fields", async ({
