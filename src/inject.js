@@ -17,7 +17,7 @@ export function initInject() {
     if (injected) return;
     injected = true;
 
-    const cardsEl = document.getElementById("cards");
+    const cardsEl = document.getElementById("cards-container");
     if (cardsEl) {
       cardsEl.innerHTML = `
             <div id="cards" x-data>
