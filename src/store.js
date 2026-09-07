@@ -5,34 +5,29 @@
  * bundle executes (the bundle is a declared dependency of the alpinejs
  * handle, and deferred scripts execute in document order).
  *
- * Also includes effect #1: auto-clear an invalid style selection when
- * coverage changes.
+ * Late-payload pattern (load-bearing — see
+ * docs/elementor-editor-and-wppusher-research.md §1.4):
+ * the store is ALWAYS registered at alpine:init, initially with empty
+ * placeholder data, so Alpine expressions never read $store.quote as
+ * undefined. On the frontend the #hh-quote-data JSON payload is
+ * server-rendered and present at alpine:init, so the real data is applied
+ * synchronously in the same tick — behavior identical to a store created
+ * with real data. In the Elementor editor preview the payload arrives via
+ * AJAX after alpine:init, so a one-shot MutationObserver applies it the
+ * moment the shortcode widget renders, then disconnects.
+ *
+ * Also includes effect #1: when coverage changes and the current style is
+ * no longer valid, auto-select the first valid style for the new coverage.
  */
 export function initStore() {
   document.addEventListener("alpine:init", () => {
-    // Guard against bad/missing ACF data killing Alpine's entire startup —
-    // this listener runs during Alpine.start(), so an uncaught throw here
-    // would take down every Alpine component on the page, not just ours.
-    const dataEl = document.getElementById("hh-quote-data");
-    if (!dataEl) {
-      console.error("[HH Quote Builder] #hh-quote-data payload not found.");
-      return;
-    }
-    let raw;
-    try {
-      raw = JSON.parse(dataEl.textContent);
-    } catch (err) {
-      console.error("[HH Quote Builder] Failed to parse quote data:", err);
-      return;
-    }
-
     Alpine.store("quote", {
-      packages: raw.packages,
-      coverageChoices: raw.coverageChoices,
-      styleChoices: raw.styleChoices,
-      availableCoverage: raw.availableCoverage,
-      styleToCoverages: raw.styleToCoverages,
-      coverage: raw.defaultCoverage,
+      packages: [],
+      coverageChoices: {},
+      styleChoices: {},
+      availableCoverage: [],
+      styleToCoverages: {},
+      coverage: null,
       style: null,
       selectedPackage: null,
       addonState: {},
@@ -118,14 +113,56 @@ export function initStore() {
       },
     });
 
-    // Effect #1 — auto-clear an invalid style when coverage changes.
+    // Apply the real payload. Frontend: element is server-rendered and
+    // already present → synchronous, one-shot. Editor preview: element is
+    // AJAXed in later → one-shot observer, disconnected on success.
+    function applyPayload(raw) {
+      const store = Alpine.store("quote");
+      store.packages = raw.packages;
+      store.coverageChoices = raw.coverageChoices;
+      store.styleChoices = raw.styleChoices;
+      store.availableCoverage = raw.availableCoverage;
+      store.styleToCoverages = raw.styleToCoverages;
+      store.coverage = raw.defaultCoverage;
+      store.style = raw.defaultStyle ?? null;
+    }
+
+    function tryApplyFromDom() {
+      const dataEl = document.getElementById("hh-quote-data");
+      if (!dataEl) return false;
+      let raw;
+      try {
+        raw = JSON.parse(dataEl.textContent);
+      } catch (err) {
+        console.error("[HH Quote Builder] Failed to parse quote data:", err);
+        return true; // Don't keep retrying a permanently broken payload.
+      }
+      applyPayload(raw);
+      return true;
+    }
+
+    if (!tryApplyFromDom()) {
+      const observer = new MutationObserver(() => {
+        if (tryApplyFromDom()) observer.disconnect();
+      });
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    // Effect #1 — when coverage changes and the current style is no longer
+    // valid, auto-select the first valid style for the new coverage (null
+    // only if none exist). Before the payload arrives the store is empty
+    // and styleList is [], so this is a no-op until real data lands.
     Alpine.effect(() => {
       const store = Alpine.store("quote");
       if (
         store.style &&
         !store.styleList.find((s) => s.slug === store.style && s.isValid)
       ) {
-        store.style = null;
+        const firstValid = store.styleList.find((s) => s.isValid);
+        store.style = firstValid ? firstValid.slug : null;
       }
     });
   });

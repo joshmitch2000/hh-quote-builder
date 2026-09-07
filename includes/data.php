@@ -75,6 +75,18 @@ function hh_get_quote_data()
 
   $default_coverage = array_key_first($available_coverage);
 
+  // First style valid for the default coverage. Key order here is package
+  // insertion order — the same order the JS styleList getter iterates
+  // styleToCoverages, so this matches the first enabled style tab in the UI
+  // and the store's first-valid fallback when coverage changes.
+  $default_style = null;
+  foreach (array_keys($style_to_coverages) as $style_slug) {
+    if (isset($style_to_coverages[$style_slug][$default_coverage])) {
+      $default_style = $style_slug;
+      break;
+    }
+  }
+
   $data = [
     'packages'          => $packages_payload,
     'coverageChoices'   => $coverage_field['choices'] ?? [],
@@ -82,6 +94,7 @@ function hh_get_quote_data()
     'availableCoverage' => array_keys($available_coverage),
     'styleToCoverages'  => array_map('array_keys', $style_to_coverages),
     'defaultCoverage'   => $default_coverage,
+    'defaultStyle'      => $default_style,
   ];
 
   return $data;

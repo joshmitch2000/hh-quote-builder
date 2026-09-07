@@ -86,7 +86,6 @@ export function initInject() {
       Alpine.initTree(addonsEl);
     }
 
-    // [selection_summary] isn't wired into Elementor yet — guard stays.
     const summaryEl = document.getElementById("selection-summary-container");
     if (summaryEl && !summaryEl.hasChildNodes()) {
       summaryEl.innerHTML = `
