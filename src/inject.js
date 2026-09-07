@@ -6,25 +6,23 @@
  * lives here as template-literal strings — they never touch PHP/kses, so
  * nothing gets stripped. Alpine.initTree() binds directives on content
  * added after Alpine.start() already ran.
+ *
+ * In the Elementor editor, widgets re-render on every panel change, which
+ * wipes injected DOM. The MutationObserver re-injects when a container is
+ * found empty, keeping the preview live while editing.
  */
 export function initInject() {
-  // Re-entrancy guard: bfcache restores / plugin conflicts can double-fire
-  // alpine:initialized; a second initTree on the same nodes would cause
-  // duplicate bindings.
-  let injected = false;
+  let observer = null;
 
-  document.addEventListener("alpine:initialized", () => {
-    if (injected) return;
-    injected = true;
-
+  function injectAll() {
     const cardsEl = document.getElementById("cards-container");
-    if (cardsEl) {
+    if (cardsEl && !cardsEl.hasChildNodes()) {
       cardsEl.innerHTML = `
             <div id="cards" x-data>
                 <template x-for="pkg in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
                     <div class="package-card">
                         <h3 class="package-card__title" x-text="pkg.label"></h3>
-                        <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)" class="price-amount"></span> <span class="price-suffix">+ GST</span></p>
+                        <p class="package-card__price">$<span x-text="$store.quote.formatNumber(pkg.price)"></span> <span>+ GST</span></p>
                         <p class="package-card__description" x-text="pkg.description"></p>
                         <button type="button" class="package-card__select" @click="$store.quote.selectPackage(pkg)">Select this package</button>
                         <div class="package-card__divider" aria-hidden="true"></div>
@@ -44,9 +42,9 @@ export function initInject() {
     }
 
     const addonsEl = document.getElementById("addons-container");
-    if (addonsEl) {
+    if (addonsEl && !addonsEl.hasChildNodes()) {
       addonsEl.innerHTML = `
-            <div id="addons" x-data>
+            <div x-data>
                 <p class="addons-selected-package" x-text="$store.quote.selectedPackage?.label"></p>
                 <h3>Select optional add-ons</h3>
                 <template x-for="addon in $store.quote.selectedPackage?.addons ?? []" :key="addon.id">
@@ -77,7 +75,7 @@ export function initInject() {
 
     // [selection_summary] isn't wired into Elementor yet — guard stays.
     const summaryEl = document.getElementById("selection-summary");
-    if (summaryEl) {
+    if (summaryEl && !summaryEl.hasChildNodes()) {
       summaryEl.innerHTML = `
                 <div class="selection-summary" x-data>
                     <div class="selection-summary__left">
@@ -104,6 +102,32 @@ export function initInject() {
                 </div>
             `;
       Alpine.initTree(summaryEl);
+    }
+  }
+
+  document.addEventListener("alpine:initialized", () => {
+    injectAll();
+
+    // Elementor editor: widgets re-render on panel changes, wiping injected
+    // markup. Watch each container and re-inject when it gets emptied.
+    // Frontend: Elementor never re-renders, so the observer never fires —
+    // the idle cost of three childList observers is negligible.
+    if (observer) return;
+    let reinjecting = false;
+    observer = new MutationObserver(() => {
+      // Alpine.initTree() mutates DOM heavily while binding; guard against
+      // re-entrancy so binding mutations don't recursively retrigger us.
+      if (reinjecting) return;
+      reinjecting = true;
+      try {
+        injectAll();
+      } finally {
+        reinjecting = false;
+      }
+    });
+    for (const id of ["cards-container", "addons-container", "selection-summary"]) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el, { childList: true });
     }
   });
 }

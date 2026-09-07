@@ -6,9 +6,15 @@
  * (no add-ons) and backward-skip via a click listener on the native
  * "Go back" button + requestAnimationFrame re-click if it lands on an
  * empty Step 2.
+ *
+ * Editor-safe: skipped entirely in the Elementor editor (`window.elementor`
+ * present) — the editor renders all steps stacked, so step navigation is
+ * meaningless and clicking native next/prev buttons would fight the
+ * editor's own widget-selection clicks.
  */
 export function initNav() {
   const formWrapper = document.getElementById("form");
+  const isEditor = !!window.elementor;
 
   window.HHQuoteNav = (function () {
     function activeStepEl() {
@@ -27,11 +33,14 @@ export function initNav() {
     }
     return {
       afterPackageSelect(addonCount) {
+        if (isEditor) return;
         clickNext();
         if (addonCount === 0) clickNext();
       },
     };
   })();
+
+  if (isEditor) return;
 
   formWrapper?.addEventListener("click", (e) => {
     const btn = e.target.closest(".e-form__buttons__wrapper__button-previous");

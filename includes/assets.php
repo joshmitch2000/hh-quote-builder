@@ -12,6 +12,8 @@ if (! defined('ABSPATH')) exit;
 
 function hhqb_should_load()
 {
+  // Elementor renders the preview iframe through wp_enqueue_scripts just
+  // like the frontend, so is_page() already covers editor + preview.
   $should_load = is_page('wedding-music-packages');
 
   /**
