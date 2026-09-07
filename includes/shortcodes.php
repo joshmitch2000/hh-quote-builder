@@ -95,7 +95,7 @@ add_shortcode('addon_selector', 'addon_selector_shortcode');
 function selection_summary_shortcode()
 {
   ob_start(); ?>
-  <div id="selection-summary"></div>
+  <div id="selection-summary-container"></div>
 <?php
   return ob_get_clean();
 }

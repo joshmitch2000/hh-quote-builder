@@ -57,7 +57,7 @@ export function initInject() {
     const addonsEl = document.getElementById("addons-container");
     if (addonsEl && !addonsEl.hasChildNodes()) {
       addonsEl.innerHTML = `
-            <div x-data>
+            <div id="addons" x-data>
                 <p class="addons-selected-package" x-text="$store.quote.selectedPackage?.label"></p>
                 <h3>Select optional add-ons</h3>
                 <template x-for="addon in $store.quote.selectedPackage?.addons ?? []" :key="addon.id">
@@ -87,10 +87,10 @@ export function initInject() {
     }
 
     // [selection_summary] isn't wired into Elementor yet — guard stays.
-    const summaryEl = document.getElementById("selection-summary");
+    const summaryEl = document.getElementById("selection-summary-container");
     if (summaryEl && !summaryEl.hasChildNodes()) {
       summaryEl.innerHTML = `
-                <div class="selection-summary" x-data>
+                <div id="selection-summary" x-data>
                     <div class="selection-summary__left">
                         <h3>Selection summary</h3>
                         <ul class="summary-list">
