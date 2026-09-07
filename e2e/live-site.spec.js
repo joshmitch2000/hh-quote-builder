@@ -92,9 +92,7 @@ test.describe("quote builder (live)", () => {
     );
 
     // …and every visible package now matches the new coverage + snapped
-    // style. (Asserted on the store, not the DOM — Alpine's x-for re-render
-    // lags the state change, so a DOM card count here is timing-flaky. The
-    // snap itself is what's under test.)
+    // style (asserted on the store)…
     const mismatched = await page.evaluate(() => {
       const s = window.Alpine.store("quote");
       return s.visiblePackages.filter(
@@ -102,6 +100,19 @@ test.describe("quote builder (live)", () => {
       ).length;
     });
     expect(mismatched).toBe(0);
+
+    // …and the DOM grid actually repopulates. Regression guard for the
+    // detached-tree gap: #cards is injected via Alpine.initTree separately
+    // from #filters, so a coverage mutation from #filters left the grid
+    // stale (store said N packages, DOM showed 0). inject.js re-renders the
+    // grid on visiblePackages identity change; poll because re-render is
+    // async.
+    const storeCount = await page.evaluate(
+      () => window.Alpine.store("quote").visiblePackages.length,
+    );
+    await expect
+      .poll(() => page.locator("#cards .package-card").count())
+      .toBe(storeCount);
   });
 
   test("package selection populates add-ons and syncs the Elementor hidden fields", async ({

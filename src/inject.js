@@ -120,6 +120,29 @@ export function initInject() {
   document.addEventListener("alpine:initialized", () => {
     injectAll();
 
+    // Re-render the card grid whenever the visible package list changes.
+    // #cards is injected via Alpine.initTree as a DETACHED tree from the
+    // #filters tree — so when a coverage/style radio (bound in #filters)
+    // mutates the store, the cards tree's own x-for does NOT reliably
+    // re-subscribe, and the grid goes stale (renders 0 cards while
+    // store.visiblePackages is non-empty). Rebuilding the inner #cards div
+    // on identity change is explicit and cheap: the div is presentational
+    // only, all selection state lives in the store. Runs on frontend AND
+    // editor — the gap exists in both.
+    Alpine.effect(() => {
+      // eslint-disable-next-line no-unused-vars -- read for reactivity only
+      const packages = Alpine.store("quote")?.visiblePackages ?? [];
+      const cardsEl = document.getElementById("cards-container");
+      if (!cardsEl) return;
+      // Force re-injection: empty the container, then refill via injectAll
+      // on the next tick (after Alpine settles). Skip the very first run —
+      // injectAll above already populated it.
+      if (cardsEl.hasChildNodes()) {
+        cardsEl.innerHTML = "";
+        Alpine.nextTick(() => injectAll());
+      }
+    });
+
     if (!isEditorPreview) return;
 
     // Editor preview: containers arrive via AJAX after this point, and
