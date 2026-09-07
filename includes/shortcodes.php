@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Quote builder shortcodes.
  *
@@ -68,7 +69,7 @@ add_shortcode('package_filters', 'package_filters_shortcode');
 function package_cards_shortcode()
 {
   ob_start(); ?>
-  <div id="cards"></div>
+  <div id="cards-container"></div>
 <?php
   return ob_get_clean();
 }

@@ -20,7 +20,7 @@ export function initInject() {
     const cardsEl = document.getElementById("cards");
     if (cardsEl) {
       cardsEl.innerHTML = `
-            <div x-data>
+            <div id="cards" x-data>
                 <template x-for="pkg in $store.quote.visiblePackages" :key="pkg.coverage + pkg.style + pkg.label">
                     <div class="package-card">
                         <h3 class="package-card__title" x-text="pkg.label"></h3>
