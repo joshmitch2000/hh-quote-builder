@@ -93,15 +93,15 @@ export function initInject() {
                     <div class="selection-summary__left">
                         <h3>Selection summary</h3>
                         <ul class="summary-list">
-                            <li>✓ <span x-text="\`\${$store.quote.coverageLabel} \${$store.quote.styleLabel}\`"></span></li>
-                            <li>✓ <span x-text="$store.quote.selectedPackage?.label"></span></li>
+                            <li><span x-text="\`\${$store.quote.coverageLabel} + \${$store.quote.styleLabel}\`"></span></li>
+                            <li><span x-text="$store.quote.selectedPackage?.label" class="package-label"></span><span x-text="$store.quote.selectedPackage?.price" class="package-price"></span></li>
                         </ul>
                         <template x-if="$store.quote.hasSelectedAddons">
                             <div class="selection-summary__addons">
                                 <p class="summary-subtitle">Optional Add-ons</p>
                                 <ul class="summary-list">
                                     <template x-for="line in $store.quote.addonSummaryLines" :key="line.id">
-                                        <li>✓ <span x-text="line.text"></span></li>
+                                        <li><span x-text="line.text"></span></li>
                                     </template>
                                 </ul>
                             </div>
