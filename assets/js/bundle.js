@@ -50,7 +50,10 @@
                         <h3>Selection summary</h3>
                         <ul class="summary-list">
                             <li><span x-text="\`\${$store.quote.coverageLabel} + \${$store.quote.styleLabel}\`"></span></li>
-                            <li><span x-text="$store.quote.selectedPackage?.label" class="package-label"></span><span x-text="$store.quote.selectedPackage?.price" class="package-price"></span></li>
+                            <li>
+                              <span x-text="$store.quote.selectedPackage?.label" class="package-label"></span>
+                              $<span x-text="$store.quote.formatNumber(pkg.price)" class="price-amount" x-if="$store.quote.hasSelectedAddons"></span>
+                            </li>
                         </ul>
                         <template x-if="$store.quote.hasSelectedAddons">
                             <div class="selection-summary__addons">
