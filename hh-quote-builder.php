@@ -11,7 +11,10 @@
 
 if (! defined('ABSPATH')) exit;
 
-define('HHQB_VERSION', '1.2.3');
+$hhqb_plugin_data = function_exists('get_file_data')
+  ? get_file_data(__FILE__, ['Version' => 'Version'])
+  : [];
+define('HHQB_VERSION', ! empty($hhqb_plugin_data['Version']) ? $hhqb_plugin_data['Version'] : '1.2.3');
 define('HHQB_ALPINE_VERSION', '3.17.1');
 define('HHQB_PATH', plugin_dir_path(__FILE__));
 define('HHQB_URL', plugin_dir_url(__FILE__));

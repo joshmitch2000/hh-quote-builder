@@ -27,11 +27,14 @@ function hhqb_should_load()
 add_action('wp_enqueue_scripts', function () {
   if (! hhqb_should_load()) return;
 
+  $bundle_path = HHQB_PATH . 'assets/js/bundle.js';
+  $bundle_ver  = file_exists($bundle_path) ? (string) filemtime($bundle_path) : HHQB_VERSION;
+
   wp_register_script(
     'hh-quote-bundle',
     HHQB_URL . 'assets/js/bundle.js',
     [],
-    HHQB_VERSION,
+    $bundle_ver,
     [
       'strategy'  => 'defer',
       'in_footer' => true,

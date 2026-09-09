@@ -24,6 +24,19 @@ function hh_get_quote_data()
   static $data = null;
   if ($data !== null) return $data;
 
+  // Defensive fallback if ACF is inactive or missing
+  if (! function_exists('get_field')) {
+    return [
+      'packages'          => [],
+      'coverageChoices'   => [],
+      'styleChoices'      => [],
+      'availableCoverage' => [],
+      'styleToCoverages'  => [],
+      'defaultCoverage'   => null,
+      'defaultStyle'      => null,
+    ];
+  }
+
   $packages = get_posts([
     'post_type'      => 'package',
     'posts_per_page' => -1,

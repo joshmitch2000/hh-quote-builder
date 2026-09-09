@@ -69,7 +69,7 @@ export function initStore() {
           if (addon.type === "quantity" && !qty) continue;
           total += addon.price * qty;
         }
-        return total;
+        return Math.round(total * 100) / 100;
       },
       get addonSummaryLines() {
         if (!this.selectedPackage) return [];
@@ -81,9 +81,10 @@ export function initStore() {
                 ? Number(this.addonState[a.id].qty || 0)
                 : 1;
             if (a.type === "quantity" && !qty) return null;
+            const addonTotal = Math.round(a.price * qty * 100) / 100;
             return {
               id: a.id,
-              text: `${qty > 1 ? qty + " " : ""}${a.label} + $${this.formatNumber(a.price * qty)}`,
+              text: `${qty > 1 ? qty + " " : ""}${a.label} + $${this.formatNumber(addonTotal)}`,
             };
           })
           .filter(Boolean);
@@ -93,7 +94,15 @@ export function initStore() {
       },
 
       formatNumber(n) {
-        return Number(n || 0).toLocaleString("en-US");
+        return Number(n || 0).toLocaleString("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        });
+      },
+
+      clearSelection() {
+        this.selectedPackage = null;
+        this.addonState = {};
       },
 
       selectPackage(pkg) {
@@ -163,6 +172,22 @@ export function initStore() {
       ) {
         const firstValid = store.styleList.find((s) => s.isValid);
         store.style = firstValid ? firstValid.slug : null;
+      }
+    });
+
+    // Invalidate package selection when coverage or style changes.
+    // If a user selected a package, went back to step 1, and switched
+    // filters, clear the stale package so a quote never submits
+    // mismatched filters and package data.
+    Alpine.effect(() => {
+      const store = Alpine.store("quote");
+      if (store.selectedPackage) {
+        if (
+          store.selectedPackage.coverage !== store.coverage ||
+          store.selectedPackage.style !== store.style
+        ) {
+          store.clearSelection();
+        }
       }
     });
   });

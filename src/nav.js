@@ -49,18 +49,42 @@ export function initNav() {
 
   if (isEditor) return;
 
-  formWrapper?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".e-form__buttons__wrapper__button-previous");
-    if (!btn) return;
-    // rAF: guards Elementor's own step timing, not load timing — keep.
-    requestAnimationFrame(() => {
-      const addons = Alpine.store("quote")?.selectedPackage?.addons ?? [];
-      const stillOnStep2 = document.querySelector(
-        ".elementor-field-group-addons:not(.elementor-hidden)",
+  formWrapper?.addEventListener(
+    "click",
+    (e) => {
+      // Guard step 1: do not allow advancing if no package is selected.
+      const nextBtn = e.target.closest(
+        ".e-form__buttons__wrapper__button-next",
       );
-      if (addons.length === 0 && stillOnStep2) btn.click();
-    });
-  });
+      if (nextBtn) {
+        const isStep1 = !formWrapper
+          ?.querySelector(".elementor-field-group-package")
+          ?.classList.contains("elementor-hidden");
+        if (isStep1 && !Alpine.store("quote")?.selectedPackage) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document
+            .getElementById("cards-container")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+      }
+
+      const prevBtn = e.target.closest(
+        ".e-form__buttons__wrapper__button-previous",
+      );
+      if (!prevBtn) return;
+      // rAF: guards Elementor's own step timing, not load timing — keep.
+      requestAnimationFrame(() => {
+        const addons = Alpine.store("quote")?.selectedPackage?.addons ?? [];
+        const stillOnStep2 = document.querySelector(
+          ".elementor-field-group-addons:not(.elementor-hidden)",
+        );
+        if (addons.length === 0 && stillOnStep2) prevBtn.click();
+      });
+    },
+    { capture: true },
+  );
 
   // ---------- Hide filters outside Step 1 ----------
   // Only the [package_filters] widget (a genuine DOM sibling of the form,
