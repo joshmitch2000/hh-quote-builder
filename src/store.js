@@ -82,9 +82,10 @@ export function initStore() {
                 : 1;
             if (a.type === "quantity" && !qty) return null;
             const addonTotal = Math.round(a.price * qty * 100) / 100;
+            const qtyPrefix = a.type === "quantity" ? `${qty}x ` : "";
             return {
               id: a.id,
-              text: `${qty}x ${a.label} + $${this.formatNumber(addonTotal)}`,
+              text: `${qtyPrefix}${a.label} + $${this.formatNumber(addonTotal)}`,
             };
           })
           .filter(Boolean);

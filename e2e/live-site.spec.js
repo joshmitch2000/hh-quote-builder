@@ -124,11 +124,11 @@ test.describe("quote builder (live)", () => {
       const store = window.Alpine.store("quote");
       store.selectPackage(store.visiblePackages[0]);
       return {
-        coverage: store.coverage,
-        style: store.style,
+        coverage: store.coverageLabel,
+        style: store.styleLabel,
         label: store.selectedPackage?.label,
-        basePrice: String(store.selectedPackage?.price ?? ""),
-        total: String(store.total),
+        basePrice: store.formatNumber(store.selectedPackage?.price ?? 0),
+        total: store.formatNumber(store.total),
         addonCount: store.selectedPackage?.addons.length ?? 0,
       };
     });
