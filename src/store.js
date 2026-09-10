@@ -84,7 +84,7 @@ export function initStore() {
             const addonTotal = Math.round(a.price * qty * 100) / 100;
             return {
               id: a.id,
-              text: `${qty > 1 ? qty + " " : ""}${a.label} + $${this.formatNumber(addonTotal)}`,
+              text: `${qty}x ${a.label} + $${this.formatNumber(addonTotal)}`,
             };
           })
           .filter(Boolean);

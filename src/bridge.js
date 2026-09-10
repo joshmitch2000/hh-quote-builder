@@ -15,18 +15,21 @@
  */
 export function initBridge() {
   const FIELD_MAP = {
-    selected_coverage: () => Alpine.store("quote").coverage || "",
-    selected_style: () => Alpine.store("quote").style || "",
+    selected_coverage: () => Alpine.store("quote").coverageLabel || "",
+    selected_style: () => Alpine.store("quote").styleLabel || "",
     package_name: () => Alpine.store("quote").selectedPackage?.label || "",
-    base_price: () => Alpine.store("quote").selectedPackage?.price ?? "",
+    base_price: () => {
+      const price = Alpine.store("quote").selectedPackage?.price;
+      return price != null ? Alpine.store("quote").formatNumber(price) : "";
+    },
     estimated_total: () =>
       Alpine.store("quote").selectedPackage
-        ? Alpine.store("quote").total
+        ? Alpine.store("quote").formatNumber(Alpine.store("quote").total)
         : "",
-    selected_addons_summary: () =>
-      Alpine.store("quote")
-        .addonSummaryLines.map((l) => l.text)
-        .join(", "),
+    selected_addons_summary: () => {
+      const lines = Alpine.store("quote").addonSummaryLines.map((l) => l.text);
+      return lines.length > 0 ? lines.join("<br>\n") : "None selected";
+    },
   };
 
   document.addEventListener("alpine:init", () => {
