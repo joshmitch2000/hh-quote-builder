@@ -1,0 +1,81 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: release-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify syntax
+        run: npm run check
+
+      - name: Build assets
+        run: |
+          npm run build
+          npm run build:emails
+
+      - name: Sync version to plugin header and constant
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            let content = fs.readFileSync('hh-quote-builder.php', 'utf8');
+            content = content.replace(/(\*\s*Version:\s*)([^\r\n]+)/, '\$1' + pkg.version);
+            content = content.replace(/(define\(\s*['\"]HHQB_VERSION['\"]\s*,\s*[^;]+;\s*)/, \"define('HHQB_VERSION', ! empty(\\\$hhqb_plugin_data['Version']) ? \\\$hhqb_plugin_data['Version'] : '\" + pkg.version + \"');\");
+            fs.writeFileSync('hh-quote-builder.php', content);
+          "
+
+      - name: Prepare production release
+        run: |
+          mkdir /tmp/plugin-release
+          cp -r hh-quote-builder.php includes assets email-templates /tmp/plugin-release/
+          cp package.json /tmp/plugin-release/
+
+      - name: Deploy to release branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Initialize clean orphan git tree in the release directory
+          cd /tmp/plugin-release
+          git init -b release
+          git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          
+          git add -A
+          git commit -m "Release from ${{ github.sha }}"
+          git push -f origin release
+
+      - name: Trigger WP Pusher Push-to-Deploy
+        if: env.WP_PUSHER_WEBHOOK_URL != ''
+        env:
+          WP_PUSHER_WEBHOOK_URL: ${{ secrets.WP_PUSHER_WEBHOOK_URL }}
+        run: |
+          echo "Pinging WP Pusher deployment webhook..."
+          curl -s -X POST "${WP_PUSHER_WEBHOOK_URL}"

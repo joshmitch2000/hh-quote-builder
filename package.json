@@ -5,15 +5,17 @@
   "description": "Him & Her Music wedding quote builder — WordPress plugin",
   "scripts": {
     "build": "esbuild src/index.js --bundle --minify --format=iife --target=es2019 --outfile=assets/js/bundle.js",
+    "build:emails": "mjml email-templates/client.mjml -o email-templates/client.html && mjml email-templates/customer.mjml -o email-templates/customer.html",
     "watch": "esbuild src/index.js --bundle --format=iife --target=es2019 --sourcemap --watch --outfile=assets/js/bundle.js",
     "check": "node --check src/index.js && node --check src/store.js && node --check src/nav.js && node --check src/bridge.js && node --check src/inject.js",
     "test": "npm run check",
     "test:e2e": "playwright test",
-    "version": "node -e \"const v=require('./package.json').version, fs=require('fs'); let f=fs.readFileSync('hh-quote-builder.php','utf8'); f=f.replace(/Version:\\s+[\\d\\.]+/, 'Version: '+v); fs.writeFileSync('hh-quote-builder.php',f);\" && npm run build && git add hh-quote-builder.php assets/js/bundle.js"
+    "version": "node -e \"const v=require('./package.json').version, fs=require('fs'); let f=fs.readFileSync('hh-quote-builder.php','utf8'); f=f.replace(/Version:\\s+[\\d\\.]+/, 'Version: '+v); fs.writeFileSync('hh-quote-builder.php',f);\" && npm run build"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "mjml": "^5.4.1"
   },
   "allowScripts": {
     "esbuild@0.25.12": true
