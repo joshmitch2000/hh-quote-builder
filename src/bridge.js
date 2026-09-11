@@ -28,7 +28,7 @@ export function initBridge() {
         : "",
     selected_addons_summary: () => {
       const lines = Alpine.store("quote").addonSummaryLines.map((l) => l.text);
-      return lines.length > 0 ? lines.join("<br>\n") : "None selected";
+      return lines.length > 0 ? lines.join(" • ") : "None selected";
     },
   };
 

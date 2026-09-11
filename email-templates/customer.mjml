@@ -3,7 +3,9 @@
     <mj-title>Your Quote Estimate - Him &amp; Her Music</mj-title>
     <mj-preview>Thank you for your wedding music quote request</mj-preview>
     <mj-attributes>
-      <mj-all font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" />
+      <mj-all
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+      />
       <mj-text font-size="14px" line-height="22px" color="#262626" />
       <mj-table font-size="14px" line-height="22px" color="#262626" />
     </mj-attributes>
@@ -68,11 +70,17 @@
     <!-- Warm Introduction -->
     <mj-section background-color="#ffffff" padding="32px 32px 16px 32px">
       <mj-column>
-        <mj-text font-size="18px" font-weight="600" color="#1a1a1a" padding="0 0 10px 0">
+        <mj-text
+          font-size="18px"
+          font-weight="600"
+          color="#1a1a1a"
+          padding="0 0 10px 0"
+        >
           Thank you for your enquiry
         </mj-text>
         <mj-text color="#595959" padding="0">
-          We have received your wedding music quote request. Here is a summary of the package and add-ons you selected:
+          We have received your wedding music quote request. Here is a summary
+          of the package and add-ons you selected:
         </mj-text>
       </mj-column>
     </mj-section>
@@ -80,7 +88,12 @@
     <!-- Quote Summary Table -->
     <mj-section background-color="#ffffff" padding="12px 32px 20px 32px">
       <mj-column>
-        <mj-text font-size="15px" font-weight="600" color="#1a1a1a" padding="0 0 10px 0">
+        <mj-text
+          font-size="15px"
+          font-weight="600"
+          color="#1a1a1a"
+          padding="0 0 10px 0"
+        >
           Quote summary
         </mj-text>
         <mj-table padding="0">
@@ -94,7 +107,9 @@
           </tr>
           <tr>
             <td class="table-label">Package name</td>
-            <td class="table-value"><strong>[field id="package_name"]</strong></td>
+            <td class="table-value">
+              <strong>[field id="package_name"]</strong>
+            </td>
           </tr>
           <tr>
             <td class="table-label">Base price</td>
@@ -106,7 +121,9 @@
           </tr>
           <tr>
             <td class="table-total-label">Estimated total</td>
-            <td class="table-total-value">$[field id="estimated_total"] + GST</td>
+            <td class="table-total-value">
+              $[field id="estimated_total"] + GST
+            </td>
           </tr>
         </mj-table>
       </mj-column>
@@ -115,15 +132,25 @@
     <!-- Disclaimer & Next Steps -->
     <mj-section background-color="#ffffff" padding="8px 32px 32px 32px">
       <mj-column>
-        <mj-text font-size="15px" font-weight="600" color="#1a1a1a" padding="0 0 10px 0">
+        <mj-text
+          font-size="15px"
+          font-weight="600"
+          color="#1a1a1a"
+          padding="0 0 10px 0"
+        >
           What happens next?
         </mj-text>
         <mj-text padding="0 0 16px 0" line-height="22px" color="#595959">
-          Our team will review your selections, check artist availability for your date, and follow up shortly with a confirmed quote and next steps.
+          Our team will review your selections, check artist availability for
+          your date, and follow up shortly with a confirmed quote and next
+          steps.
         </mj-text>
         <mj-text padding="0">
           <div class="disclaimer-box">
-            <strong>Please note:</strong> This is only an indicative estimate and not a final quote. Artist quotes may vary, travel fees may apply depending on venue location, and all dates are subject to artist availability.
+            <strong>Please note:</strong> This is only an indicative estimate
+            and not a final quote. Artist quotes may vary, travel fees may apply
+            depending on venue location, and all dates are subject to artist
+            availability.
           </div>
         </mj-text>
       </mj-column>
@@ -132,12 +159,34 @@
     <!-- Footer -->
     <mj-section background-color="#f5f5f5" padding="24px 32px 32px 32px">
       <mj-column>
-        <mj-divider border-width="1px" border-style="solid" border-color="#e0e0e0" padding="0 0 16px 0" />
-        <mj-text align="center" font-size="13px" line-height="20px" color="#595959" padding="0 0 6px 0">
+        <mj-divider
+          border-width="1px"
+          border-style="solid"
+          border-color="#e0e0e0"
+          padding="0 0 16px 0"
+        />
+        <mj-text
+          align="center"
+          font-size="13px"
+          line-height="20px"
+          color="#595959"
+          padding="0 0 6px 0"
+        >
           Have questions in the meantime? You can reply directly to this email.
         </mj-text>
-        <mj-text align="center" font-size="12px" line-height="18px" color="#737373" padding="0">
-          Him &amp; Her Music &bull; <a href="https://himandhermusic.com" style="color: #595959; text-decoration: underline;">himandhermusic.com</a>
+        <mj-text
+          align="center"
+          font-size="12px"
+          line-height="18px"
+          color="#737373"
+          padding="0"
+        >
+          Him &amp; Her Music &bull;
+          <a
+            href="https://himandhermusic.com"
+            style="color: #595959; text-decoration: underline"
+            >himandhermusic.com</a
+          >
         </mj-text>
       </mj-column>
     </mj-section>
