@@ -27,7 +27,27 @@ export function initStore() {
       styleChoices: {},
       availableCoverage: [],
       styleToCoverages: {},
-      coverage: null,
+      _coverage: null,
+      get coverage() {
+        return this._coverage;
+      },
+      set coverage(value) {
+        if (this._coverage === value) return;
+        this._coverage = value;
+        // Synchronously snap style to the first valid option if current style
+        // is invalid for the new coverage. Prevents visiblePackages from
+        // momentarily dropping to [] and causing a layout flash.
+        if (
+          value &&
+          this.style &&
+          !this.styleToCoverages[this.style]?.includes(value)
+        ) {
+          const firstValid = Object.keys(this.styleToCoverages).find((slug) =>
+            this.styleToCoverages[slug]?.includes(value),
+          );
+          this.style = firstValid ?? null;
+        }
+      },
       style: null,
       selectedPackage: null,
       addonState: {},

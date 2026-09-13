@@ -155,20 +155,21 @@ export function initInject() {
 
       // Lock height so content below doesn't jump during the empty→refill gap.
       const height = cardsEl.offsetHeight;
-      cardsEl.style.minHeight = `${height}px`;
+      if (height > 0) {
+        cardsEl.style.minHeight = `${height}px`;
+      }
 
+      // Re-inject synchronously so the browser never paints an empty frame.
       cardsEl.innerHTML = "";
-      Alpine.nextTick(() => {
-        injectAll();
-        // Re-trigger the enter animation each rebuild: the class persists on
-        // the container across rebuilds, so remove → reflow → re-add to
-        // restart it, then release the height lock after the new grid paints.
-        cardsEl.classList.remove("cards--entering");
-        void cardsEl.offsetWidth; // force reflow so the animation restarts
-        cardsEl.classList.add("cards--entering");
-        requestAnimationFrame(() => {
-          cardsEl.style.minHeight = "";
-        });
+      injectAll();
+      // Re-trigger the enter animation each rebuild: the class persists on
+      // the container across rebuilds, so remove → reflow → re-add to
+      // restart it, then release the height lock after the new grid paints.
+      cardsEl.classList.remove("cards--entering");
+      void cardsEl.offsetWidth; // force reflow so the animation restarts
+      cardsEl.classList.add("cards--entering");
+      requestAnimationFrame(() => {
+        cardsEl.style.minHeight = "";
       });
     });
 

@@ -23,22 +23,84 @@ export function initNav() {
     "elementor-preview",
   );
 
+  function getActiveStepNumber() {
+    if (
+      !formWrapper
+        ?.querySelector(".elementor-field-group-package")
+        ?.classList.contains("elementor-hidden")
+    ) {
+      return 1;
+    }
+    if (
+      !formWrapper
+        ?.querySelector(".elementor-field-group-addons")
+        ?.classList.contains("elementor-hidden")
+    ) {
+      return 2;
+    }
+    return 3;
+  }
+
+  function scrollToActiveStep() {
+    const step = getActiveStepNumber();
+    const targetEl =
+      step === 1
+        ? document.querySelector(".js-step1-only") || formWrapper
+        : formWrapper || document.getElementById("package_quote_form");
+
+    if (!targetEl) return;
+
+    const stickyHeader =
+      document.getElementById("header_menu_section") ||
+      document.querySelector(".elementor-sticky--active, .elementor-sticky");
+    const headerOffset = stickyHeader ? stickyHeader.offsetHeight : 0;
+    const buffer = 16;
+    const targetY =
+      window.scrollY +
+      targetEl.getBoundingClientRect().top -
+      headerOffset -
+      buffer;
+
+    if (Math.abs(window.scrollY - targetY) < 10) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    window.scrollTo({
+      top: Math.max(0, Math.round(targetY)),
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  }
+
+  let scrollRafId = null;
+  function scheduleScroll() {
+    if (scrollRafId) cancelAnimationFrame(scrollRafId);
+    scrollRafId = requestAnimationFrame(() => {
+      scrollRafId = requestAnimationFrame(() => {
+        scrollRafId = null;
+        const addons = Alpine.store("quote")?.selectedPackage?.addons ?? [];
+        const stillOnStep2 = document.querySelector(
+          ".elementor-field-group-addons:not(.elementor-hidden)",
+        );
+        if (addons.length === 0 && stillOnStep2) return;
+
+        scrollToActiveStep();
+      });
+    });
+  }
+
   window.HHQuoteNav = (function () {
     function activeStepEl() {
       return formWrapper?.querySelector(".e-form__step:not(.elementor-hidden)");
-    }
-    function scrollToForm() {
-      document
-        .getElementById("package_quote_form")
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
     }
     function clickNext() {
       activeStepEl()
         ?.querySelector(".e-form__buttons__wrapper__button-next")
         ?.click();
-      scrollToForm();
     }
     return {
+      scrollToForm: scheduleScroll,
       afterPackageSelect(addonCount) {
         if (isEditor) return;
         clickNext();
@@ -86,7 +148,7 @@ export function initNav() {
     { capture: true },
   );
 
-  // ---------- Hide filters outside Step 1 ----------
+  // ---------- Hide filters outside Step 1 & sync step navigation scroll ----------
   // Only the [package_filters] widget (a genuine DOM sibling of the form,
   // invisible to Elementor's own step-hiding) needs this. The disclaimer
   // lives inside Step 1's own field group, so native step-hiding covers it.
@@ -98,9 +160,20 @@ export function initNav() {
       el.style.display = isStep1 ? "" : "none";
     });
   }
+
+  let lastStep = getActiveStepNumber();
+  function handleStepMutation() {
+    syncStepVisibility();
+    const currentStep = getActiveStepNumber();
+    if (currentStep !== lastStep) {
+      lastStep = currentStep;
+      scheduleScroll();
+    }
+  }
+
   const fieldsWrapper = document.querySelector(".elementor-form-fields-wrapper");
   if (fieldsWrapper) {
-    new MutationObserver(syncStepVisibility).observe(fieldsWrapper, {
+    new MutationObserver(handleStepMutation).observe(fieldsWrapper, {
       attributes: true,
       attributeFilter: ["class"],
       subtree: true,
